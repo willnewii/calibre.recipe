@@ -1,0 +1,40 @@
+#!/usr/bin/env python2
+# vim:fileencoding=utf-8
+# ebook-convert Desktop/test1.recipe .epub --test -vv --debug-pipeline debug
+#!/usr/bin/python
+# encoding: utf-8
+from calibre.web.feeds.recipes import BasicNewsRecipe
+
+class wooyun(BasicNewsRecipe):
+    title = 'yuyang-blog'
+    __author__ = 'yuyang'
+    description = 'yuyang的blog.关于angular 2.0 的文章'
+    timefmt = '[%Y-%m-%d]'
+    no_stylesheets = False
+    INDEX = 'http://yuyang041060120.github.io/'
+    # auto_cleanup = True                   # 如果没有手动分析文章结构，可以考虑开启该选项自动清理正文内容
+    language = 'zh-CN'
+    keep_only_tags = [{'class': ['container']}]  # 仅保留文章中对应的样式的内容，其中为自己分析得到的正文范围
+    max_articles_per_feed = 10000               # 默认最多文章数是100，可改为更大的数字以免下载不全
+
+    def parse_index(self):
+        start_page = 1      # int(pages_info[1])
+        end_page = 2        # int(pages_info[3])
+        articles = []
+        for p in range(start_page, end_page+1):     # 处理每一个目录页
+            if p == 1:
+                soup_page = self.index_to_soup(self.INDEX)
+            else:
+                soup_page = self.index_to_soup(self.INDEX + '/page' + str(p))
+
+            soup_titles = soup_page.findAll(**{'class': 'post-preview'})     # 从目录页中提取正文标题和链接
+            for soup_title in soup_titles:
+                href = soup_title.a
+                title = soup_title.a.h2.string
+                articles.append({'title': title, 'url': self.INDEX + href['href']})
+            print 'page %d done' % p
+        articles.reverse()                 # 文章倒序，让其按照时间从前到后排列
+        print articles
+        # self.abort_recipe_processing('test')  # 用来中断电子书生成，调试用
+        res = [('blog', articles)]    # 返回tuple，分别是电子书名字和文章列表
+        return res
